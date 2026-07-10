@@ -19,6 +19,9 @@ final watchlistRepositoryProvider = Provider<WatchlistRepository>((ref) {
   return WatchlistRepositoryImpl(datasource);
 });
 
+/// Enum for watchlist sorting options.
+enum WatchlistSortBy { dateNewest, dateOldest, nameAZ, nameZA }
+
 /// The state notifier for the Watchlist feature.
 ///
 /// Manages the list of watched stocks, handling loading, adding,
@@ -31,6 +34,36 @@ class WatchlistNotifier extends AsyncNotifier<List<WatchlistItem>> {
     // It loads the watchlist from the local database.
     AppLogger.instance.i('🔄 WatchlistNotifier: Initializing and loading data...');
     return _loadWatchlist();
+  }
+
+  /// The current sorting method.
+  WatchlistSortBy _sortBy = WatchlistSortBy.dateNewest;
+
+  /// Sorts the current watchlist based on the selected criteria.
+  void sortWatchlist(WatchlistSortBy sortBy) {
+    AppLogger.instance.d('🔀 WatchlistNotifier: Sorting by $sortBy...');
+    _sortBy = sortBy;
+
+    if (state.value == null) return;
+
+    final sortedList = List<WatchlistItem>.from(state.value!);
+
+    switch (sortBy) {
+      case WatchlistSortBy.dateNewest:
+        sortedList.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+        break;
+      case WatchlistSortBy.dateOldest:
+        sortedList.sort((a, b) => a.addedAt.compareTo(b.addedAt));
+        break;
+      case WatchlistSortBy.nameAZ:
+        sortedList.sort((a, b) => a.companyName.compareTo(b.companyName));
+        break;
+      case WatchlistSortBy.nameZA:
+        sortedList.sort((a, b) => b.companyName.compareTo(a.companyName));
+        break;
+    }
+
+    state = AsyncValue.data(sortedList);
   }
 
   /// Fetches the watchlist from the repository.

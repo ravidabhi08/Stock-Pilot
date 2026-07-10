@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart'; // Added for context.pop()
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_error_widget.dart';
@@ -13,16 +14,7 @@ import '../widgets/stock_metrics_grid.dart';
 import '../widgets/stock_price_header.dart';
 
 /// The main Stock Details screen displaying comprehensive stock information.
-///
-/// This page is the destination when a user taps on a stock from the Dashboard,
-/// Portfolio, or Watchlist. It features:
-/// - An interactive price chart header.
-/// - Company information and description.
-/// - A grid of fundamental metrics (P/E, Market Cap, etc.).
-/// - Persistent Buy/Sell action buttons at the bottom.
-/// - A toggleable "Star" icon to add/remove the stock from the Watchlist.
 class StockDetailPage extends ConsumerWidget {
-  /// The stock ticker symbol to load details for.
   final String symbol;
 
   const StockDetailPage({super.key, required this.symbol});
@@ -30,21 +22,23 @@ class StockDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-
-    // Watch the stock detail data for the specific symbol
     final detailAsync = ref.watch(stockDetailProvider(symbol));
-
-    // Watch the watchlist status to toggle the star icon
     final isInWatchlistAsync = ref.watch(isInWatchlistProvider(symbol));
 
     return Scaffold(
-      // 1. App Bar with Watchlist Toggle
+      // 1. Fixed Premium AppBar
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: theme.colorScheme.surface, // Seamless background
         elevation: 0,
+        scrolledUnderElevation: 0, // No shadow on scroll
+        centerTitle: false,
+        titleTextStyle: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(), // FIXED: Use GoRouter pop instead of Navigator
         ),
         actions: [
           // Watchlist Toggle Button
@@ -53,7 +47,7 @@ class StockDetailPage extends ConsumerWidget {
               data:
                   (isInWatchlist) => Icon(
                     isInWatchlist ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: isInWatchlist ? Colors.amber : theme.colorScheme.onSurface,
+                    color: isInWatchlist ? Colors.amber : theme.colorScheme.onSurfaceVariant,
                   ),
               loading:
                   () => const SizedBox(
@@ -75,7 +69,9 @@ class StockDetailPage extends ConsumerWidget {
           ),
         ],
       ),
-      extendBodyBehindAppBar: true, // Allows chart to go behind the app bar
+
+      // Removed extendBodyBehindAppBar: true so content doesn't hide behind status bar
+
       // 2. Main Content
       body: detailAsync.when(
         loading: () => const AppLoader(message: 'Loading stock details...'),
@@ -95,8 +91,7 @@ class StockDetailPage extends ConsumerWidget {
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  // Spacer for the transparent app bar
-                  const SliverToBoxAdapter(child: SizedBox(height: 60)),
+                  // Removed the 60px spacer since the AppBar is no longer transparent
 
                   // Hero Section: Price & Chart
                   SliverToBoxAdapter(child: StockPriceHeader(detail: detail)),
@@ -117,7 +112,7 @@ class StockDetailPage extends ConsumerWidget {
                     sliver: SliverToBoxAdapter(child: StockMetricsGrid(detail: detail)),
                   ),
 
-                  // Bottom padding to prevent content from hiding behind action buttons
+                  // Bottom padding for action buttons
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
@@ -188,9 +183,6 @@ class StockDetailPage extends ConsumerWidget {
   /// Toggles the stock's presence in the watchlist.
   void _toggleWatchlist(WidgetRef ref, bool isInWatchlist) {
     final notifier = ref.read(watchlistProvider.notifier);
-
-    // We need the company name. In a real app, this comes from the detail entity.
-    // For now, we'll just use the symbol as a placeholder name if needed.
     final detail = ref.read(stockDetailProvider(symbol)).value;
     final companyName = detail?.companyName ?? symbol;
 
@@ -251,7 +243,7 @@ class StockDetailPage extends ConsumerWidget {
                 height: 52,
                 child: FilledButton(
                   onPressed: () {
-                    Navigator.pop(ctx);
+                    context.pop(); // Close the bottom sheet
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Order placed for $action ${detail.symbol}')),
                     );

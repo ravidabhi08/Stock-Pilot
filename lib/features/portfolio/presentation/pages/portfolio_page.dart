@@ -19,7 +19,29 @@ class PortfolioPage extends ConsumerWidget {
     final summaryAsync = ref.watch(portfolioSummaryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Portfolio'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Portfolio'),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
+        actions: [
+          // Download Statement Icon (Prep for your future PDF feature!)
+          IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Download Statement',
+            onPressed: () {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('PDF Export coming soon!')));
+            },
+          ),
+        ],
+      ),
       body: summaryAsync.when(
         loading: () => const AppLoader(message: 'Loading portfolio...'),
         error:
@@ -88,8 +110,8 @@ class PortfolioPage extends ConsumerWidget {
                         return HoldingTile(
                           holding: holding,
                           onTap: () {
-                            // Navigate to stock details
-                            context.goNamed(
+                            // FIXED: Changed goNamed to pushNamed
+                            context.pushNamed(
                               'stock_detail',
                               pathParameters: {'symbol': holding.symbol},
                             );

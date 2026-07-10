@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:stock_pilot/features/portfolio/data/models/holding_model.dart';
 
+import '../../../../core/services/market_stream_service.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../domain/entities/holding.dart';
 import '../../domain/entities/portfolio_summary.dart';
@@ -7,63 +10,91 @@ import '../../domain/repositories/portfolio_repository.dart';
 import '../datasources/mock_portfolio_datasource.dart';
 
 /// Implementation of [PortfolioRepository] for the Portfolio feature.
-///
-/// This class is part of the Data layer and handles the actual data fetching
-/// logic. It uses a data source (currently [MockPortfolioDatasource]) to
-/// retrieve raw data, maps it to domain entities, and returns it to the
-/// presentation layer.
-///
-/// The repository pattern allows us to:
-/// - Swap data sources easily (mock → real API → cached data)
-/// - Handle data transformation (models → entities)
-/// - Centralize error handling for the feature
-/// - Keep the domain layer independent of data sources
 class PortfolioRepositoryImpl implements PortfolioRepository {
-  /// The data source used to fetch raw portfolio data.
   final MockPortfolioDatasource _datasource;
+  final MarketStreamService _streamService = MarketStreamService.instance;
 
-  /// Creates a new [PortfolioRepositoryImpl] with the given data source.
   PortfolioRepositoryImpl(this._datasource);
 
   @override
   Future<PortfolioSummary> getPortfolio() async {
     AppLogger.instance.d('📦 PortfolioRepository: Fetching from datasource...');
-
+    
     try {
-      // Fetch raw data from the datasource
       final models = await _datasource.getPortfolio();
-      AppLogger.instance.d('📦 PortfolioRepository: Got ${models.length} holdings from datasource');
-
-      // Map data models to domain entities
-      AppLogger.instance.d('📦 PortfolioRepository: Mapping models to entities...');
       final List<Holding> holdings = models.map((model) => model.toEntity()).toList();
 
-      // Create the aggregate PortfolioSummary entity
-      AppLogger.instance.d('📦 PortfolioRepository: Creating PortfolioSummary...');
-      final summary = PortfolioSummary(holdings: holdings, lastUpdated: DateTime.now());
-
-      AppLogger.instance.i('✅ PortfolioRepository: Successfully created PortfolioSummary');
-      AppLogger.instance.d(
-        '📊 PortfolioRepository: Total Investment: ₹${summary.totalInvestment.toStringAsFixed(2)}, '
-        'Current Value: ₹${summary.totalCurrentValue.toStringAsFixed(2)}, '
-        'P&L: ₹${summary.totalProfitLoss.toStringAsFixed(2)}',
+      final summary = PortfolioSummary(
+        holdings: holdings,
+        lastUpdated: DateTime.now(),
       );
-
+      
       return summary;
     } catch (e, stackTrace) {
-      AppLogger.instance.e(
-        '❌ PortfolioRepository: Error in getPortfolio',
-        error: e,
-        stackTrace: stackTrace,
-      );
+      AppLogger.instance.e('❌ PortfolioRepository: Error in getPortfolio', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
 
   @override
+  Stream<PortfolioSummary> watchPortfolio() {
+    AppLogger.instance.i('📡 PortfolioRepository: Starting live portfolio stream...');
+
+    final controller = StreamController<PortfolioSummary>();
+
+    // 1. Fetch initial data
+    getPortfolio().then((initialSummary) {
+      controller.add(initialSummary);
+
+      // 2. Seed the stream service with actual current prices to prevent random jumps
+      final initialPrices = {
+        for (var h in initialSummary.holdings) h.symbol: h.currentPrice
+      };
+      _streamService.seedPrices(initialPrices);
+
+      // 3. Collect symbols to track
+      final symbolsToTrack = initialSummary.holdings.map((h) => h.symbol).toList();
+
+      // 4. Subscribe to the live stream
+      final subscription = _streamService
+          .getPriceStream(symbolsToTrack, interval: const Duration(seconds: 2))
+          .listen((priceUpdates) {
+        
+        final updatedSummary = _applyPriceUpdates(initialSummary, priceUpdates);
+        controller.add(updatedSummary);
+      });
+
+      controller.onCancel = () {
+        subscription.cancel();
+        AppLogger.instance.d('📡 PortfolioRepository: Stream subscription cancelled.');
+      };
+    });
+
+    return controller.stream;
+  }
+
+  @override
   Future<PortfolioSummary> refreshPortfolio() async {
-    // For now, refresh uses the same logic as getPortfolio
-    // In production, this might bypass cache and fetch fresh data from API
     return getPortfolio();
+  }
+
+  /// Helper method to apply live price ticks to the holdings.
+  PortfolioSummary _applyPriceUpdates(
+    PortfolioSummary original, 
+    Map<String, double> priceUpdates,
+  ) {
+    final updatedHoldings = original.holdings.map((holding) {
+      if (priceUpdates.containsKey(holding.symbol)) {
+        return holding.withCurrentPrice(priceUpdates[holding.symbol]!);
+      }
+      return holding;
+    }).toList();
+
+    // PortfolioSummary automatically recalculates total P&L 
+    // and current value based on the new holding prices!
+    return PortfolioSummary(
+      holdings: updatedHoldings,
+      lastUpdated: DateTime.now(),
+    );
   }
 }

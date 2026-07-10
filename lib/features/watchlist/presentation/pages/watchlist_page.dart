@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/app_loader.dart';
 import '../../domain/entities/watchlist_item.dart';
 import '../controllers/watchlist_providers.dart';
+import '../widgets/watchlist_filter_sheet.dart';
 
 /// The main Watchlist screen displaying the user's tracked stocks.
 class WatchlistPage extends ConsumerWidget {
@@ -19,11 +20,36 @@ class WatchlistPage extends ConsumerWidget {
     final watchlistAsync = ref.watch(watchlistProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Watchlist'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Watchlist'),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
+        actions: [
+          // Filter/Sort Icon
+          IconButton(
+            icon: const Icon(Icons.filter_list_rounded),
+            tooltip: 'Filter & Sort',
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (context) => const WatchlistFilterSheet(),
+              );
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Open Add Stock Dialog / Search Screen
-          _showAddStockPlaceholder(context);
+          context.pushNamed('search'); // FIXED
         },
         child: const Icon(Icons.add_rounded),
       ),
@@ -108,8 +134,8 @@ class WatchlistPage extends ConsumerWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
-              // Navigate to stock details
-              context.goNamed('stock_detail', pathParameters: {'symbol': item.symbol});
+              // FIXED: Changed goNamed to pushNamed
+              context.pushNamed('stock_detail', pathParameters: {'symbol': item.symbol});
             },
             borderRadius: BorderRadius.circular(12.0),
             child: Container(

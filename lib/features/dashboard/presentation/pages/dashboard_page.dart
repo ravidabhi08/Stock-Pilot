@@ -20,7 +20,39 @@ class DashboardPage extends ConsumerWidget {
     final overviewAsync = ref.watch(marketOverviewProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Market Overview'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Market Overview'),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0, // Removes shadow when scrolling
+        centerTitle: false,
+        titleTextStyle: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
+        actions: [
+          // Search Icon
+          IconButton(
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () {
+              context.pushNamed('search'); // FIXED
+            },
+          ),
+          // Profile Avatar
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.md),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: theme.colorScheme.primaryContainer,
+              child: Icon(
+                Icons.person_rounded,
+                size: 20,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: overviewAsync.when(
         loading: () => const AppLoader(message: 'Loading market data...'),
         error:
@@ -52,14 +84,14 @@ class DashboardPage extends ConsumerWidget {
                       title: 'Top Gainers',
                       stocks: overview.topGainers,
                       onViewAll: () {
-                        // TODO: Navigate to full gainers list
                         ScaffoldMessenger.of(
                           context,
                         ).showSnackBar(const SnackBar(content: Text('View All Gainers')));
                       },
+                      // Inside Top Gainers:
                       onStockTap: (stock) {
-                        // Navigate to stock details
-                        context.goNamed('stock_detail', pathParameters: {'symbol': stock.symbol});
+                        // FIXED: Changed goNamed to pushNamed
+                        context.pushNamed('stock_detail', pathParameters: {'symbol': stock.symbol});
                       },
                     ),
 
@@ -70,14 +102,14 @@ class DashboardPage extends ConsumerWidget {
                       title: 'Top Losers',
                       stocks: overview.topLosers,
                       onViewAll: () {
-                        // TODO: Navigate to full losers list
                         ScaffoldMessenger.of(
                           context,
                         ).showSnackBar(const SnackBar(content: Text('View All Losers')));
                       },
+                      // Inside Top Losers:
                       onStockTap: (stock) {
-                        // Navigate to stock details
-                        context.goNamed('stock_detail', pathParameters: {'symbol': stock.symbol});
+                        // FIXED: Changed goNamed to pushNamed
+                        context.pushNamed('stock_detail', pathParameters: {'symbol': stock.symbol});
                       },
                     ),
 

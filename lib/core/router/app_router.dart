@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/portfolio/presentation/pages/portfolio_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/stock_details/presentation/pages/stock_detail_page.dart';
 import '../../features/watchlist/presentation/pages/watchlist_page.dart';
 import 'route_names.dart';
@@ -52,12 +54,7 @@ class AppRouter {
           GoRoute(
             path: RouteNames.settings,
             name: 'settings',
-            builder:
-                (context, state) => const _PlaceholderPage(
-                  title: 'Settings',
-                  subtitle: 'Preferences & Account',
-                  icon: Icons.settings_rounded,
-                ),
+            builder: (context, state) => const SettingsPage(),
           ),
         ],
       ),
@@ -72,6 +69,9 @@ class AppRouter {
           return StockDetailPage(symbol: symbol);
         },
       ),
+
+      // Add this inside the routes list, right after the stock_detail route:
+      GoRoute(path: '/search', name: 'search', builder: (context, state) => const SearchPage()),
     ],
   );
 }
