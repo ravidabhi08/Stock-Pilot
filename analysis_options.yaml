@@ -1,0 +1,68 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# include: package:flutter_lints/flutter_lints.yaml
+
+analyzer:
+  exclude:
+    # Exclude generated files from analysis to prevent false positives
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.gen.dart"
+    - "**/*.config.dart"
+  errors:
+    # Ignore invalid annotation target errors caused by freezed/json_serializable
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    # --- General Dart Rules ---
+    # Enforce explicit return types for better readability and maintenance
+    always_declare_return_types: true
+
+    # Prevent accidental debug prints in production code
+    avoid_print: true
+
+    # Enforce single quotes for consistency
+    prefer_single_quotes: true
+
+    # Enforce final for local variables to prevent accidental mutation
+    prefer_final_locals: true
+
+    # --- Performance & Optimization ---
+    # Enforce const constructors to optimize widget rebuilds and memory
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+
+    # --- Safety & Correctness ---
+    # Ensure futures are properly awaited to prevent race conditions
+    unawaited_futures: true
+
+    # Ensure subscriptions and sinks are properly closed to prevent memory leaks
+    cancel_subscriptions: true
+    close_sinks: true
+
+    # Prevent throwing exceptions in finally blocks which can swallow original errors
+    throw_in_finally: true
+
+    # --- Flutter Specific Rules ---
+    # Enforce keys in widget constructors for proper state management
+    use_key_in_widget_constructors: true
+
+    # Prevent unnecessary containers that bloat the widget tree
+    avoid_unnecessary_containers: true
+
+    # Enforce SizedBox instead of Container for simple width/height constraints
+    sized_box_for_whitespace: true
+
+    # Enforce trailing commas for better formatting and cleaner git diffs
+    require_trailing_commas: true
+
+    # Enforce sorting of child properties last in widget constructors
+    sort_child_properties_last: true
